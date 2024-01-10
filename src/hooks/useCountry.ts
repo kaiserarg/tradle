@@ -1,5 +1,5 @@
 import { csv } from "d3-fetch";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { countriesWithImage, Country } from "../domain/countries";
 
 interface DateCountry {
@@ -7,31 +7,23 @@ interface DateCountry {
   date: string;
 }
 
-export function useCountry(dayString: string): [Country | undefined] {
-  const [forcedCountryCode, setForcedCountryCode] = useState("");
+export function useCountry(): [Country | undefined] {
+  const [randomCountry, setRandomCountry] = useState<Country | undefined>(undefined);
 
   useEffect(() => {
-    csv("data.csv", (d) => {
-      return { country: d.country, date: d.date };
+    csv<DateCountry>("data.csv", (row) => {
+      const country = row.country ?? ""; // Provide default value if undefined
+      const date = row.date ?? ""; // Provide default value if undefined
+      return { country, date };
     }).then((data) => {
-      setForcedCountryCode(
-        data.length
-          ? (
-              data.find((el) => el.date === dayString) as DateCountry
-            )?.country.toUpperCase() || ""
-          : ""
-      );
+      if (data.length > 0) {
+        const randomIndex = Math.floor(Math.random() * data.length);
+        const forcedCountryCode = data[randomIndex].country.toUpperCase();
+        const country = countriesWithImage.find((c) => c.code === forcedCountryCode);
+        setRandomCountry(country);
+      }
     });
-  }, [dayString]);
+  }, []); // Empty dependency array to run only on mount
 
-  const country = useMemo(() => {
-    const forcedCountry =
-      forcedCountryCode !== ""
-        ? countriesWithImage.find(
-            (country) => country.code === forcedCountryCode
-          )
-        : undefined;
-    return forcedCountry;
-  }, [forcedCountryCode]);
-  return [country];
+  return [randomCountry];
 }
